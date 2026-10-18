@@ -75,6 +75,9 @@ export interface Asset {
   contrast: number
   /** Custom per-asset ramp overrides (materialId -> ramp). */
   rampOverrides: Record<string, string[]> | null
+  /** Optional sketch references (Amendment 001): guide images as data URLs,
+   * never part of sketch/sprite exports. */
+  references?: string[]
 }
 
 export interface ScenePlacement {

@@ -249,6 +249,47 @@ input[type="range"] { width: 100%; min-height: 32px; }
 
 .pv-pad { padding: 10px; }
 
+/* Sketch top bar + reference strip (Amendment 001) */
+.sketch-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 6;
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  background: rgba(13,14,16,0.85); backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--line);
+}
+.sketch-top .asset-name {
+  flex: 1; min-width: 0; background: transparent; border: 1px solid var(--line);
+  border-radius: 8px; color: var(--fg); padding: 8px 10px; font-size: 14px;
+}
+.sketch-top button { min-width: 44px; min-height: 36px; }
+.ref-strip {
+  position: absolute; left: 0; right: 0; bottom: 52px; z-index: 6;
+  display: flex; align-items: center; gap: 8px; padding: 4px 10px;
+  min-height: 56px;
+}
+.ref-strip.empty { justify-content: flex-start; }
+.ref-thumb {
+  position: relative; width: 48px; height: 48px; flex: 0 0 auto;
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  background: #000;
+}
+.ref-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ref-thumb .ref-x {
+  position: absolute; top: 0; right: 0; width: 20px; height: 20px;
+  min-width: 0; min-height: 0;
+  background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 0 0 0 6px;
+  font-size: 12px; line-height: 1; padding: 0;
+}
+.ref-add {
+  background: transparent; border: 1px dashed var(--line); color: var(--fg2);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px;
+}
+.ref-add.small { width: 48px; height: 48px; font-size: 18px; padding: 0; }
+.ref-overlay {
+  position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center;
+}
+.ref-overlay img { max-width: 92vw; max-height: 92vh; object-fit: contain; }
+
 @media (max-width: 520px) {
   .preview-pane { width: 76px; }
   .tool-row { padding-right: 84px; }

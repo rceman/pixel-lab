@@ -91,6 +91,23 @@ const sketchFile = await dl1
 const sketchPath = "/tmp/pl-dl/rock-sketch.json"
 await sketchFile.saveAs(sketchPath)
 
+// ---- 5b. Amendment 001: reference strip — import, enlarge, dismiss ----
+const refPng = "/tmp/pl-dl/ref.png"
+writeFileSync(refPng, Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"))
+await page.locator('input[type="file"][hidden]').setInputFiles(refPng)
+await page.waitForTimeout(600)
+const nThumbs = await page.locator(".ref-thumb").count()
+console.log("REF thumbs:", nThumbs)
+await page.locator(".ref-thumb").first().tap()
+await page.waitForTimeout(400)
+await shot("02b-ref-enlarged")
+await page.locator(".ref-overlay").tap()
+await page.waitForTimeout(300)
+// contamination check: exported sketch JSON must not contain reference data
+const sk = JSON.parse(readFileSync(sketchPath, "utf8"))
+console.log("SKETCH clean:", sk.references === undefined, "| keys:", Object.keys(sk).join(","))
+
 // ---- 6. external agent: sketch -> form JSON ----
 const formJson = execFileSync("node", ["scripts/agent_form_gen.ts", sketchPath], { encoding: "utf8" })
 const formPath = "/tmp/pl-dl/rock-form.json"

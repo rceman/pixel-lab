@@ -41,6 +41,8 @@ const view = { x: 40, y: 40, zoom: 12 }
 interface Snap { sil: number[]; hh: number[] | null; eh: number[] | null }
 const undoStack: Snap[] = []
 const redoStack: Snap[] = []
+const undoN = ref(0)
+const redoN = ref(0)
 
 function snap(): Snap {
   const s = asset.value!.sketch!
@@ -54,16 +56,19 @@ function pushUndo() {
   undoStack.push(snap())
   if (undoStack.length > 60) undoStack.shift()
   redoStack.length = 0
+  undoN.value = undoStack.length; redoN.value = 0
 }
 function undo() {
   if (!undoStack.length) return
   redoStack.push(snap())
   applySnap(undoStack.pop()!)
+  undoN.value = undoStack.length; redoN.value = redoStack.length
 }
 function redo() {
   if (!redoStack.length) return
   undoStack.push(snap())
   applySnap(redoStack.pop()!)
+  undoN.value = undoStack.length; redoN.value = redoStack.length
 }
 function applySnap(s: Snap) {
   const sk = asset.value!.sketch!
@@ -324,6 +329,56 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", (canvas as any)._fit)
 })
 
+// ---- references (Amendment 001, optional P1) ----
+// Up to 4 guide images below the canvas. Guides only: they are stored on the
+// asset but never enter sketch JSON or sprite output.
+const refFile = ref<HTMLInputElement | null>(null)
+const enlarged = ref<number | null>(null)
+
+const refs = computed<string[]>(() => asset.value?.references ?? [])
+
+function addReference() {
+  if (refs.value.length >= 4) { store.notice = "Max 4 references"; return }
+  refFile.value?.click()
+}
+
+async function onRefFiles(e: Event) {
+  const files = (e.target as HTMLInputElement).files
+  if (!files?.length || !asset.value) return
+  const a = asset.value
+  a.references = [...(a.references ?? [])]
+  for (const f of [...files].slice(0, 4 - a.references.length)) {
+    a.references.push(await downscaleRef(f))
+  }
+  touch(a)
+  ;(e.target as HTMLInputElement).value = ""
+}
+
+function downscaleRef(f: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const img = new Image()
+    img.onload = () => {
+      const max = 512
+      const s = Math.min(1, max / Math.max(img.width, img.height))
+      const c = document.createElement("canvas")
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s)
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height)
+      URL.revokeObjectURL(img.src)
+      res(c.toDataURL("image/png"))
+    }
+    img.onerror = rej
+    img.src = URL.createObjectURL(f)
+  })
+}
+
+function removeReference(i: number) {
+  const a = asset.value
+  if (!a?.references) return
+  a.references.splice(i, 1)
+  if (!a.references.length) a.references = undefined
+  touch(a)
+}
+
 // ---- actions ----
 function exportSketch() {
   const a = asset.value
@@ -359,15 +414,33 @@ function toForm() {
   <div class="workspace">
     <div ref="host" class="canvas-host"></div>
     <PreviewPane />
-    <div class="tool-row" style="position: absolute; top: 0; left: 0; right: 0">
+    <div class="sketch-top">
+      <input class="asset-name" v-model="asset!.name" @input="touch(asset!)" />
+      <button @click="undo" :disabled="!undoN" title="Undo">↩</button>
+      <button @click="redo" :disabled="!redoN" title="Redo">↪</button>
+    </div>
+    <div class="tool-row" style="position: absolute; top: 46px; left: 0; right: 0">
       <button v-for="t in tools" :key="t.id" :class="{ on: tool === t.id }" @click="tool = t.id">{{ t.label }}</button>
-      <button @click="undo">↩</button>
-      <button @click="redo">↪</button>
+    </div>
+    <div class="ref-strip" :class="{ empty: !refs.length }">
+      <template v-if="refs.length">
+        <div v-for="(r, i) in refs" :key="i" class="ref-thumb" @click="enlarged = i">
+          <img :src="r" alt="reference" />
+          <button class="ref-x" @click.stop="removeReference(i)">×</button>
+        </div>
+        <button v-if="refs.length < 4" class="ref-add small" @click="addReference">＋</button>
+      </template>
+      <button v-else class="ref-add" @click="addReference">＋ Reference (optional)</button>
+    </div>
+    <input ref="refFile" type="file" accept="image/*" multiple hidden @change="onRefFiles" />
+    <div v-if="enlarged != null" class="ref-overlay" @click="enlarged = null">
+      <img :src="refs[enlarged]" alt="reference enlarged" />
     </div>
     <div class="bottom-bar" style="position: absolute; bottom: 0; left: 0; right: 0">
+      <button @click="store.mode = 'scene'">← Scene</button>
       <button @click="exportSketch">Export sketch</button>
       <button @click="importSketch">Import</button>
-      <button :class="{ on: sheetOpen }" @click="sheetOpen = !sheetOpen">Settings</button>
+      <button :class="{ on: sheetOpen }" @click="sheetOpen = !sheetOpen">⚙</button>
       <span class="spacer"></span>
       <button class="primary" @click="toForm">Generate 3D Form →</button>
     </div>
