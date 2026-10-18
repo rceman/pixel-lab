@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/pixel-lab/sw.js', { scope: '/pixel-lab/' })})}
